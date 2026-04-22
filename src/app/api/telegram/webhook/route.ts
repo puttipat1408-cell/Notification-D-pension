@@ -1,7 +1,8 @@
 import { getSettingsMap } from "@/lib/settings";
-import { persistTelegramStatusUpdate } from "@/lib/requests";
+import { getRequestTelegramContextByReqId, persistTelegramStatusUpdate } from "@/lib/requests";
 import { sendTelegramCallbackFeedback } from "@/lib/telegram";
 import type { TelegramAction } from "@/lib/types";
+import { isTruthySetting } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,8 +25,15 @@ export async function POST(request: Request) {
       .join(" ") || "เจ้าหน้าที่";
 
     const settings = await getSettingsMap();
+    const requestContext = await getRequestTelegramContextByReqId(reqId);
+    const displayCitizenId = requestContext
+      ? (isTruthySetting(settings.SEND_FULL_ID) ? requestContext.citizenId : (requestContext.maskedCitizenId || requestContext.citizenId))
+      : undefined;
+
     await sendTelegramCallbackFeedback(settings, {
       action,
+      agency: requestContext?.agency,
+      citizenId: displayCitizenId,
       reqId,
       callbackId: callbackQuery.id,
       messageId: callbackQuery.message?.message_id,

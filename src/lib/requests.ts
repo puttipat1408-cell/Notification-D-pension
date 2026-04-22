@@ -222,6 +222,29 @@ export async function updateRequestStatusByReqId(reqId: string, input: UpdateReq
   return { success: true };
 }
 
+export async function getRequestTelegramContextByReqId(reqId: string) {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("requests")
+    .select("agency, citizen_id, masked_citizen_id")
+    .eq("req_id", reqId)
+    .maybeSingle();
+
+  if (error) {
+    throw new AppError(`โหลดข้อมูลสำหรับ Telegram ไม่สำเร็จ: ${error.message}`, 500);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    agency: data.agency ?? "",
+    citizenId: data.citizen_id ?? "",
+    maskedCitizenId: data.masked_citizen_id ?? "",
+  };
+}
+
 export async function persistTelegramStatusUpdate(reqId: string, action: TelegramAction) {
   const settings = await getSettingsMap();
   const actionConfig = getTelegramActionConfig(action, settings);
