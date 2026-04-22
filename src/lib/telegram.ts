@@ -98,8 +98,8 @@ export async function sendTelegramStatusNotification(settings: SettingsMap, payl
 
 export async function sendTelegramCallbackFeedback(settings: SettingsMap, payload: {
   action: TelegramAction;
-  agency: string;
-  citizenId: string;
+  agency?: string;
+  citizenId?: string;
   reqId: string;
   callbackId: string;
   messageId?: number;
@@ -111,9 +111,15 @@ export async function sendTelegramCallbackFeedback(settings: SettingsMap, payloa
 
   const actionConfig = getTelegramActionConfig(payload.action, settings);
   const newKeyboard = buildTelegramInlineKeyboard(getNextTelegramActionRows(payload.action), payload.reqId, settings);
+  const agencyLine = payload.agency
+    ? `🏢 <b>ส่วนราชการ:</b> ${escapeTelegramHtml(payload.agency)}\n`
+    : "";
+  const citizenIdLine = payload.citizenId
+    ? `🆔 <b>เลขบัตรประชาชน:</b> <code>${escapeTelegramHtml(payload.citizenId)}</code>\n`
+    : "";
   const quickAlertMsg = `${actionConfig.icon} <b>อัปเดตสถานะแล้ว</b>\n\n` +
-    `🏢 <b>ส่วนราชการ:</b> ${escapeTelegramHtml(payload.agency)}\n` +
-    `🆔 <b>เลขบัตรประชาชน:</b> <code>${escapeTelegramHtml(payload.citizenId)}</code>\n` +
+    agencyLine +
+    citizenIdLine +
     `📌 <b>สถานะปัจจุบัน:</b> <b>${escapeTelegramHtml(actionConfig.statusText)}</b>\n` +
     `👨‍💻 <b>ผู้ดำเนินการ:</b> ${escapeTelegramHtml(payload.actionBy)}`;
 
