@@ -301,7 +301,6 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
             <div className="hero-brand-badge">🛡️</div>
             <div className="hero-copy">
               <h1>ระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</h1>
-              <p>ย้ายมาใช้ Next.js + Supabase โดยยังคง flow เดิมของฟอร์ม, dashboard และ Telegram status buttons</p>
             </div>
           </div>
           <div className="hero-status">
@@ -434,7 +433,6 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
               <div className="toolbar">
                 <div className="toolbar-stats">
                   <strong>{filteredRequests.length}</strong> รายการที่แสดง
-                  <div>รีเฟรชอัตโนมัติทุก 2.5 วินาทีเมื่อเปิดหน้าแดชบอร์ด</div>
                 </div>
 
                 <div className="toolbar-actions">
@@ -461,14 +459,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                     ))}
                   </select>
 
-                  <button
-                    type="button"
-                    className="button-icon"
-                    onClick={() => void loadRequests(false)}
-                    aria-label="รีเฟรชข้อมูล"
-                  >
-                    ↻
-                  </button>
+                  
                 </div>
               </div>
 

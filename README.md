@@ -65,3 +65,54 @@ npm run telegram:webhook:set
 
 - ไฟล์ Google Apps Script เดิม (`Code.gs`, `*.html`) ยังถูกเก็บไว้เป็น reference ใน workspace นี้
 - ฝั่ง dashboard ยังคงใช้ชุดสถานะเดิมเหมือนระบบเก่า
+
+
+
+
+
+
+
+
+โปรเจกต์นี้ deploy ขึ้นเว็บได้เลย และทางที่ง่ายสุดคือ Vercel เพราะเป็น Next.js ที่มี API ฝั่งเซิร์ฟเวอร์ด้วย ไม่ใช่เว็บ static ธรรมดา ผมลอง npm run build ให้แล้วและผ่านเรียบร้อย ดังนั้นตอนนี้เหลือแค่ตั้งค่า Supabase + env + Telegram webhook
+
+ตัวแปรที่โปรเจกต์ใช้ดูได้ใน .env.example (line 1) และสคริปต์ที่ใช้ตั้ง webhook อยู่ใน package.json (line 5) กับ scripts/telegram-webhook.mjs (line 79)
+
+เตรียมฐานข้อมูล Supabase
+รันไฟล์ supabase/schema.sql (line 1) ใน Supabase SQL Editor ก่อน เพื่อสร้างตาราง requests และ app_settings
+
+ใส่ค่าใน app_settings
+อย่างน้อยต้องมี TELEGRAM_BOT_TOKEN และ TELEGRAM_CHAT_ID ไม่งั้นระบบส่ง Telegram ไม่ได้
+
+เตรียม Environment Variables
+เอาค่าจาก .env.local ไปใส่ใน Vercel Project Settings > Environment Variables
+ต้องมีอย่างน้อย:
+
+NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_URL ถ้าจะเก็บ URL ฝั่ง server แยก
+NEXT_PUBLIC_APP_URL=https://ชื่อเว็บของคุณ.vercel.app หลัง deploy ครั้งแรก
+หรือ TELEGRAM_WEBHOOK_URL=https://ชื่อเว็บของคุณ.vercel.app/api/telegram/webhook
+SUPABASE_SERVICE_ROLE_KEY ต้องเป็น service_role จริง ๆ ไม่ใช่ anon
+
+Deploy ขึ้น Vercel
+วิธีง่ายสุดคือ push repo ขึ้น GitHub แล้วไปที่ Vercel > New Project > import repo นี้ > Deploy
+ถ้าใช้ CLI:
+
+npm i -g vercel
+vercel
+vercel --prod
+ตั้ง Telegram webhook หลังเว็บขึ้นแล้ว
+พอได้ URL จริงของเว็บแล้ว ให้ใส่ URL นั้นในทั้ง Vercel env และ .env.local บนเครื่องคุณ แล้วสั่ง:
+
+npm run telegram:webhook:set
+npm run telegram:webhook:info
+จุดสำคัญคือสคริปต์นี้อ่านค่าจาก .env.local บนเครื่องคุณ ไม่ได้อ่านจาก Vercel โดยตรง
+
+ทดสอบจริง
+เปิดหน้าเว็บที่ deploy แล้ว
+
+ลองส่งคำขอ 1 รายการ
+เช็กว่ามี row เข้า Supabase
+เช็กว่า Telegram เด้ง
+ลองกดปุ่มใน Telegram แล้วดูว่าสถานะในฐานข้อมูลอัปเดต
+ถ้าจะเอาให้จบเร็วสุด แนะนำลำดับนี้: Supabase -> Vercel deploy -> ใส่ NEXT_PUBLIC_APP_URL -> redeploy -> set webhook
