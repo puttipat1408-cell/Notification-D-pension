@@ -94,7 +94,7 @@ async function buildInsertPayload(input: CreateRequestInput) {
     requestDateText: formatThaiDate(now),
     requestTimeText: formatBangkokTime(now),
     timestampMs: now.getTime(),
-    status: "รออนุมัติ",
+    status: "ส่งคำขอแล้ว",
   };
 }
 
