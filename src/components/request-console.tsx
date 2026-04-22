@@ -9,6 +9,7 @@ import {
   useState,
   useRef,
 } from "react";
+import Image from "next/image";
 
 import { getStatusTone, dashboardStatusValues } from "@/lib/statuses";
 import type { RequestRecord } from "@/lib/types";
@@ -48,8 +49,22 @@ function validateCitizenIdLocal(id: string) {
   return checkDigit === Number(id.charAt(12));
 }
 
-async function fetchRequestsFromApi() {
-  const response = await fetch("/api/requests", {
+async function fetchRequestsFromApi(options?: {
+  search?: string;
+  status?: "all" | (typeof dashboardStatusValues)[number];
+}) {
+  const params = new URLSearchParams();
+
+  if (options?.search) {
+    params.set("search", options.search);
+  }
+
+  if (options?.status && options.status !== "all") {
+    params.set("status", options.status);
+  }
+
+  const url = params.size > 0 ? `/api/requests?${params.toString()}` : "/api/requests";
+  const response = await fetch(url, {
     method: "GET",
     cache: "no-store",
   });
@@ -96,7 +111,10 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
     }
 
     try {
-      const data = await fetchRequestsFromApi();
+      const data = await fetchRequestsFromApi({
+        search: deferredSearchTerm,
+        status: statusFilter,
+      });
       startTransition(() => {
         setRequests(data);
         setRequestsError("");
@@ -115,7 +133,10 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
 
   const refreshDashboardPoll = useEffectEvent(async () => {
     try {
-      const data = await fetchRequestsFromApi();
+      const data = await fetchRequestsFromApi({
+        search: deferredSearchTerm,
+        status: statusFilter,
+      });
       startTransition(() => {
         setRequests(data);
         setRequestsError("");
@@ -130,7 +151,10 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
 
     void (async () => {
       try {
-        const data = await fetchRequestsFromApi();
+        const data = await fetchRequestsFromApi({
+          search: deferredSearchTerm,
+          status: statusFilter,
+        });
         if (cancelled) return;
 
         startTransition(() => {
@@ -151,7 +175,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [deferredSearchTerm, statusFilter]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -171,12 +195,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
     };
   }, []);
 
-  const filteredRequests = requests.filter((request) => {
-    const haystack = `${request.fullName}${request.agency}${request.maskedCitizenId}`.toLowerCase();
-    const matchesText = !deferredSearchTerm || haystack.includes(deferredSearchTerm);
-    const matchesStatus = statusFilter === "all" || request.status === statusFilter;
-    return matchesText && matchesStatus;
-  });
+  const filteredRequests = requests;
 
   function resetForm() {
     setFormData(INITIAL_FORM);
@@ -298,7 +317,16 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
       <div className="page-frame">
         <header className="hero-bar">
           <div className="hero-brand">
-            <div className="hero-brand-badge">🛡️</div>
+            <div className="hero-brand-badge" aria-hidden="true">
+              <Image
+                src="/logo.svg"
+                alt=""
+                width={40}
+                height={40}
+                className="hero-brand-logo"
+                unoptimized
+              />
+            </div>
             <div className="hero-copy">
               <h1>ระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</h1>
             </div>
@@ -342,9 +370,8 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
               <div className="panel-header">
                 <div>
                   <div className="panel-title">บันทึกคำขอใหม่</div>
-                  <div className="panel-subtitle">กรอกข้อมูลให้ครบถ้วน ระบบจะส่งแจ้งเตือน Telegram และแนบปุ่มสถานะตามค่าใน settings</div>
                 </div>
-                <div className="panel-chip">เริ่มต้นสถานะ: รออนุมัติ</div>
+                <div className="panel-chip">เริ่มต้นสถานะ: ส่งคำขอ</div>
               </div>
 
               <form onSubmit={handleSubmit}>

@@ -4,9 +4,13 @@ import { createRequestSchema } from "@/lib/validators";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const requests = await getRequests();
+    const { searchParams } = new URL(request.url);
+    const requests = await getRequests({
+      search: searchParams.get("search") ?? undefined,
+      status: searchParams.get("status") ?? undefined,
+    });
     return Response.json(requests, {
       headers: {
         "cache-control": "no-store",

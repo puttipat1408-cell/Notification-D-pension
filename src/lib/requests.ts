@@ -22,12 +22,33 @@ function isDuplicateConstraintError(error: { code?: string; message?: string } |
   return error?.code === "23505";
 }
 
-export async function getRequests(): Promise<RequestRecord[]> {
+type GetRequestsOptions = {
+  search?: string;
+  status?: string;
+};
+
+export async function getRequests(options: GetRequestsOptions = {}): Promise<RequestRecord[]> {
   const supabase = getSupabaseAdminClient();
-  const { data, error } = await supabase
+  const search = sanitizeName(options.search ?? "");
+  const status = (options.status ?? "").trim();
+
+  let query = supabase
     .from("requests")
     .select("id, req_id, request_date_text, request_time_text, full_name, agency, masked_citizen_id, status, note, telegram_status, created_at")
     .order("timestamp_ms", { ascending: false });
+
+  if (status && status !== "all") {
+    query = query.eq("status", status);
+  }
+
+  if (search) {
+    const escapedSearch = search.replace(/([,%_])/g, "\\$1");
+    query = query.or(
+      `full_name.ilike.%${escapedSearch}%,agency.ilike.%${escapedSearch}%,masked_citizen_id.ilike.%${escapedSearch}%,req_id.ilike.%${escapedSearch}%`,
+    );
+  }
+
+  const { data, error } = await query;
 
   if (error) throw new AppError(`โหลดข้อมูลล้มเหลว: ${error.message}`, 500);
 

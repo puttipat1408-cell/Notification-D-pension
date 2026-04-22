@@ -116,3 +116,28 @@ npm run telegram:webhook:info
 เช็กว่า Telegram เด้ง
 ลองกดปุ่มใน Telegram แล้วดูว่าสถานะในฐานข้อมูลอัปเดต
 ถ้าจะเอาให้จบเร็วสุด แนะนำลำดับนี้: Supabase -> Vercel deploy -> ใส่ NEXT_PUBLIC_APP_URL -> redeploy -> set webhook
+
+
+
+
+ถ้าแก้เฉพาะไฟล์ใน components เช่น src/components/request-console.tsx ก็ยังต้อง deploy ใหม่ ครับ เพราะมันเป็นส่วนหนึ่งของโค้ดหน้าเว็บ
+
+สรุปคือ:
+
+ถ้าแก้ component, page, layout, css
+ต้อง redeploy เพื่อให้หน้าเว็บจริงอัปเดต
+ถ้าเปิด npm run dev บนเครื่อง
+จะเห็นผลทันทีแค่ในเครื่องคุณ
+เว็บที่คนอื่นเข้าผ่านลิงก์ production
+จะยังเป็นเวอร์ชันเดิม จนกว่าจะ deploy รอบใหม่
+ถ้าใช้ GitHub + Vercel
+
+แก้โค้ด
+
+git add .
+git commit -m "update component"
+git push
+แล้ว Vercel จะ deploy ให้เอง
+
+
+ถ้าอยาก ผมช่วยเช็กให้ได้ว่าโปรเจกต์นี้ตอนนี้เหมาะกับ flow แบบ push แล้ว auto deploy หรือ deploy manual มากกว่ากันครับ

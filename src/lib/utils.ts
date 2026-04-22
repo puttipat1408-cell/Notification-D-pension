@@ -87,6 +87,21 @@ export function sanitizeName(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function maskNamePart(value: string) {
+  if (!value) return value;
+  if (value.length === 1) return `${value}*`;
+  if (value.length === 2) return `${value.charAt(0)}*`;
+  return `${value.charAt(0)}${"*".repeat(Math.min(value.length - 1, 6))}`;
+}
+
+export function maskFullName(value: string) {
+  return sanitizeName(value)
+    .split(" ")
+    .filter(Boolean)
+    .map(maskNamePart)
+    .join(" ");
+}
+
 export function normalizeOptionalText(value: string | null | undefined, fallback = "-") {
   const normalized = (value ?? "").trim();
   return normalized || fallback;
