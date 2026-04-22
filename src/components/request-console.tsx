@@ -329,6 +329,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
             </div>
             <div className="hero-copy">
               <h1>ระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</h1>
+              <p>สำนักงานคลังจังหวัดสกลนคร</p>
             </div>
           </div>
           <div className="hero-status">
