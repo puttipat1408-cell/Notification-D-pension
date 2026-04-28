@@ -24,7 +24,6 @@ const INITIAL_FORM = {
   firstName: "",
   lastName: "",
   agency: "",
-  citizenId: "",
 };
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -75,8 +74,6 @@ async function fetchRequestsFromApi(options?: {
 export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
   const [activeTab, setActiveTab] = useState<"form" | "dashboard">("form");
   const [formData, setFormData] = useState(INITIAL_FORM);
-  const [showCitizenId, setShowCitizenId] = useState(false);
-  const [citizenIdError, setCitizenIdError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requests, setRequests] = useState<RequestRecord[]>([]);
   const [requestsError, setRequestsError] = useState("");
@@ -199,27 +196,18 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
 
   function resetForm() {
     setFormData(INITIAL_FORM);
-    setCitizenIdError("");
-    setShowCitizenId(false);
-  }
-
-  function handleCitizenIdChange(value: string) {
-    const digitsOnly = value.replace(/[^0-9]/g, "").slice(0, 13);
-    setFormData((current) => ({ ...current, citizenId: digitsOnly }));
-
-    if (digitsOnly.length === 13) {
-      setCitizenIdError(validateCitizenIdLocal(digitsOnly) ? "" : "เลขประจำตัวประชาชนไม่ถูกต้อง");
-      return;
-    }
-
-    setCitizenIdError("");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!validateCitizenIdLocal(formData.citizenId)) {
-      setCitizenIdError("เลขประจำตัวประชาชนไม่ถูกต้อง");
+    const citizenIdInput = window.prompt("กรุณากรอกเลขประจำตัวประชาชน 13 หลักเพื่อบันทึกคำขอ");
+    if (citizenIdInput === null) {
+      return;
+    }
+
+    const citizenId = citizenIdInput.replace(/[^0-9]/g, "").slice(0, 13);
+    if (!validateCitizenIdLocal(citizenId)) {
       pushFlash({
         type: "error",
         title: "ข้อมูลไม่ถูกต้อง",
@@ -236,7 +224,10 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          citizenId,
+        }),
       });
 
       const result = await parseResponse<{ message: string }>(response);
@@ -417,33 +408,6 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                       ))}
                     </select>
                   </div>
-
-                  <div className="field full">
-                    <label htmlFor="citizenId">เลขประจำตัวประชาชน (13 หลัก)</label>
-                    <div className="input-row">
-                      <input
-                        id="citizenId"
-                        className="input mono"
-                        type={showCitizenId ? "text" : "password"}
-                        inputMode="numeric"
-                        maxLength={13}
-                        value={formData.citizenId}
-                        onChange={(event) => handleCitizenIdChange(event.target.value)}
-                        placeholder="กรอกเลขประจำตัวประชาชน"
-                      />
-                      <button
-                        type="button"
-                        className="input-affix"
-                        onClick={() => setShowCitizenId((current) => !current)}
-                        aria-label={showCitizenId ? "ซ่อนเลขบัตร" : "แสดงเลขบัตร"}
-                      >
-                        {showCitizenId ? "🙈" : "👁️"}
-                      </button>
-                    </div>
-                    <div className={clsx("helper-text", citizenIdError && "is-error")}>
-                      {citizenIdError || "ระบบจะตรวจสอบเลขบัตรตามหลักกรมการปกครองก่อนบันทึก"}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="button-row">
@@ -469,7 +433,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                     <input
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="ค้นหา ชื่อ, หน่วยงาน, เลขบัตรปกปิด"
+                      placeholder="ค้นหา ชื่อ, หน่วยงาน"
                     />
                   </div>
 
@@ -499,7 +463,6 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                         <th>วันที่-เวลา</th>
                         <th>ชื่อ-นามสกุล</th>
                         <th>ส่วนราชการ</th>
-                        <th>เลขบัตร (ปกปิด)</th>
                         <th>สถานะ</th>
                         <th>จัดการ</th>
                       </tr>
@@ -507,13 +470,13 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                     <tbody>
                       {isLoadingRequests ? (
                         <tr>
-                          <td colSpan={6}>
+                          <td colSpan={5}>
                             <div className="empty-state">กำลังโหลดข้อมูล...</div>
                           </td>
                         </tr>
                       ) : filteredRequests.length === 0 ? (
                         <tr>
-                          <td colSpan={6}>
+                          <td colSpan={5}>
                             <div className="empty-state">
                               <div>
                                 <strong>ไม่พบข้อมูลที่ตรงกับเงื่อนไข</strong>
@@ -531,7 +494,6 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                             </td>
                             <td className="row-primary">{request.fullName}</td>
                             <td className="row-secondary">{request.agency}</td>
-                            <td className="mono row-secondary">{request.maskedCitizenId}</td>
                             <td>
                               <span className={clsx("status-badge", getStatusTone(request.status))}>
                                 {request.status}
@@ -552,6 +514,20 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
             </section>
           )}
         </div>
+
+        <footer className="developer-footer" aria-label="ข้อมูลผู้พัฒนา">
+          <div className="developer-card">
+            <p className="developer-name">
+              <span className="developer-icons" aria-hidden="true">
+                <span>🌷</span>
+                <span>🙋‍♀️</span>
+              </span>
+              <span>พรรณลิณี แผนเมือง</span>
+            </p>
+            <p className="developer-role">นักวิชาการเงินและบัญชี กลุ่มงานวิชาการ</p>
+            <p className="developer-caption">ผู้พัฒนาระบบระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</p>
+          </div>
+        </footer>
 
         {modalRequest ? (
           <div className="modal-backdrop" role="presentation">

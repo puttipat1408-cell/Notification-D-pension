@@ -60,7 +60,6 @@ export async function sendTelegramRequestNotification(settings: SettingsMap, pay
   const message = `🔔 <b>แจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</b>\n\n` +
     `👤 <b>ชื่อผู้ขอ:</b> ${escapeTelegramHtml(payload.name)}\n` +
     `🏢 <b>ส่วนราชการ:</b> ${escapeTelegramHtml(payload.agency)}\n` +
-    `🆔 <b>เลขบัตรประชาชน:</b> <code>${escapeTelegramHtml(displayId)}</code>\n` +
     `📅 <b>วันที่:</b> ${escapeTelegramHtml(payload.dateText)} ⏰ ${escapeTelegramHtml(payload.timeText)}\n` +
     `📌 <b>สถานะ:</b> ${escapeTelegramHtml(payload.status)}`;
 
@@ -118,13 +117,9 @@ export async function sendTelegramCallbackFeedback(settings: SettingsMap, payloa
   const agencyLine = payload.agency
     ? `🏢 <b>ส่วนราชการ:</b> ${escapeTelegramHtml(payload.agency)}\n`
     : "";
-  const citizenIdLine = payload.citizenId
-    ? `🆔 <b>เลขบัตรประชาชน:</b> <code>${escapeTelegramHtml(payload.citizenId)}</code>\n`
-    : "";
   const quickAlertMsg = `${actionConfig.icon} <b>อัปเดตสถานะแล้ว</b>\n\n` +
     nameLine +
     agencyLine +
-    citizenIdLine +
     `📌 <b>สถานะปัจจุบัน:</b> <b>${escapeTelegramHtml(actionConfig.statusText)}</b>\n` +
     `👨‍💻 <b>ผู้ดำเนินการ:</b> ${escapeTelegramHtml(payload.actionBy)}`;
 
