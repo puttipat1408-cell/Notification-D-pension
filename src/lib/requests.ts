@@ -71,14 +71,14 @@ async function buildInsertPayload(input: CreateRequestInput) {
   const now = new Date();
   const firstName = sanitizeName(input.firstName);
   const lastName = sanitizeName(input.lastName);
-  const citizenId = input.citizenId.trim();
+  const citizenId = (input.citizenId ?? "").trim();
   const agency = input.agency.trim();
 
   if (!firstName || !lastName || !agency) {
     throw new AppError("กรุณากรอกข้อมูลให้ครบถ้วน");
   }
 
-  if (!validateCitizenId(citizenId)) {
+  if (citizenId && !validateCitizenId(citizenId)) {
     throw new AppError("เลขประจำตัวประชาชนไม่ถูกต้อง");
   }
 
@@ -89,7 +89,7 @@ async function buildInsertPayload(input: CreateRequestInput) {
     citizenId,
     agency,
     fullName: `${firstName} ${lastName}`,
-    maskedCitizenId: maskCitizenId(citizenId),
+    maskedCitizenId: citizenId ? maskCitizenId(citizenId) : "",
     requestDay: formatBangkokDay(now),
     requestDateText: formatThaiDate(now),
     requestTimeText: formatBangkokTime(now),

@@ -36,18 +36,6 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
-function validateCitizenIdLocal(id: string) {
-  if (!/^\d{13}$/.test(id)) return false;
-
-  let sum = 0;
-  for (let index = 0; index < 12; index += 1) {
-    sum += Number(id.charAt(index)) * (13 - index);
-  }
-
-  const checkDigit = (11 - (sum % 11)) % 10;
-  return checkDigit === Number(id.charAt(12));
-}
-
 async function fetchRequestsFromApi(options?: {
   search?: string;
   status?: "all" | (typeof dashboardStatusValues)[number];
@@ -201,21 +189,6 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const citizenIdInput = window.prompt("กรุณากรอกเลขประจำตัวประชาชน 13 หลักเพื่อบันทึกคำขอ");
-    if (citizenIdInput === null) {
-      return;
-    }
-
-    const citizenId = citizenIdInput.replace(/[^0-9]/g, "").slice(0, 13);
-    if (!validateCitizenIdLocal(citizenId)) {
-      pushFlash({
-        type: "error",
-        title: "ข้อมูลไม่ถูกต้อง",
-        message: "กรุณาตรวจสอบเลขประจำตัวประชาชน 13 หลักก่อนบันทึก",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -224,10 +197,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          ...formData,
-          citizenId,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const result = await parseResponse<{ message: string }>(response);

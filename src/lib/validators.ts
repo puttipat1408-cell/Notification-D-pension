@@ -5,7 +5,7 @@ import { dashboardStatusValues } from "@/lib/statuses";
 export const createRequestSchema = z.object({
   firstName: z.string().trim().min(1, "กรุณากรอกชื่อ"),
   lastName: z.string().trim().min(1, "กรุณากรอกนามสกุล"),
-  citizenId: z.string().trim().regex(/^\d{13}$/, "เลขประจำตัวประชาชนต้องเป็นตัวเลข 13 หลัก"),
+  citizenId: z.string().trim().optional().default(""),
   agency: z.string().trim().min(1, "กรุณาเลือกส่วนราชการ"),
 });
 

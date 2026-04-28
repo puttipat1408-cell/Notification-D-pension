@@ -26,7 +26,7 @@ export interface RequestRecord {
 export interface CreateRequestInput {
   firstName: string;
   lastName: string;
-  citizenId: string;
+  citizenId?: string;
   agency: string;
 }
 
