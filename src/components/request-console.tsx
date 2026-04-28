@@ -525,7 +525,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
               <span>พรรณลิณี แผนเมือง</span>
             </p>
             <p className="developer-role">นักวิชาการเงินและบัญชี กลุ่มงานวิชาการ</p>
-            <p className="developer-caption">ผู้พัฒนาระบบระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</p>
+            <p className="developer-caption">ผู้พัฒนาระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</p>
           </div>
         </footer>
 
