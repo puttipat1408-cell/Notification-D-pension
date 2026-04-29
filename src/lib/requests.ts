@@ -12,10 +12,8 @@ import {
   formatThaiDate,
   generateRequestId,
   getErrorMessage,
-  maskCitizenId,
   normalizeOptionalText,
   sanitizeName,
-  validateCitizenId,
 } from "@/lib/utils";
 
 function isDuplicateConstraintError(error: { code?: string; message?: string } | null) {
@@ -57,7 +55,7 @@ export async function getRequests(options: GetRequestsOptions = {}): Promise<Req
     reqId: row.req_id,
     requestDate: row.request_date_text,
     requestTime: row.request_time_text,
-    fullName: row.full_name,
+    requestSummary: row.full_name,
     agency: row.agency,
     maskedCitizenId: row.masked_citizen_id,
     status: row.status,
@@ -69,27 +67,24 @@ export async function getRequests(options: GetRequestsOptions = {}): Promise<Req
 
 async function buildInsertPayload(input: CreateRequestInput) {
   const now = new Date();
-  const firstName = sanitizeName(input.firstName);
-  const lastName = sanitizeName(input.lastName);
-  const citizenId = (input.citizenId ?? "").trim();
+  const requestCount = input.requestCount;
   const agency = input.agency.trim();
+  const citizenId = "";
+  const requestSummary = `${requestCount} ราย`;
 
-  if (!firstName || !lastName || !agency) {
+  if (!Number.isInteger(requestCount) || requestCount < 1 || !agency) {
     throw new AppError("กรุณากรอกข้อมูลให้ครบถ้วน");
-  }
-
-  if (citizenId && !validateCitizenId(citizenId)) {
-    throw new AppError("เลขประจำตัวประชาชนไม่ถูกต้อง");
   }
 
   return {
     now,
-    firstName,
-    lastName,
+    requestCount,
+    storageFirstName: String(requestCount),
+    storageLastName: agency,
     citizenId,
     agency,
-    fullName: `${firstName} ${lastName}`,
-    maskedCitizenId: citizenId ? maskCitizenId(citizenId) : "",
+    requestSummary,
+    maskedCitizenId: "",
     requestDay: formatBangkokDay(now),
     requestDateText: formatThaiDate(now),
     requestTimeText: formatBangkokTime(now),
@@ -106,8 +101,8 @@ export async function createRequest(input: CreateRequestInput) {
     .from("requests")
     .select("id")
     .eq("request_day", payload.requestDay)
-    .eq("first_name", payload.firstName)
-    .eq("last_name", payload.lastName)
+    .eq("first_name", payload.storageFirstName)
+    .eq("last_name", payload.storageLastName)
     .eq("citizen_id", payload.citizenId)
     .maybeSingle();
 
@@ -116,7 +111,7 @@ export async function createRequest(input: CreateRequestInput) {
   }
 
   if (duplicateRow) {
-    throw new AppError("ตรวจพบการบันทึกข้อมูลซ้ำซ้อนในวันนี้ สำหรับบุคคลนี้");
+    throw new AppError("ตรวจพบการบันทึกข้อมูลซ้ำซ้อนสำหรับส่วนราชการและจำนวนนี้ในวันนี้");
   }
 
   let reqId = "";
@@ -131,9 +126,9 @@ export async function createRequest(input: CreateRequestInput) {
       request_date_text: payload.requestDateText,
       request_time_text: payload.requestTimeText,
       timestamp_ms: payload.timestampMs,
-      first_name: payload.firstName,
-      last_name: payload.lastName,
-      full_name: payload.fullName,
+      first_name: payload.storageFirstName,
+      last_name: payload.storageLastName,
+      full_name: payload.requestSummary,
       agency: payload.agency,
       citizen_id: payload.citizenId,
       masked_citizen_id: payload.maskedCitizenId,
@@ -163,10 +158,8 @@ export async function createRequest(input: CreateRequestInput) {
   const settings = await getSettingsMap();
   const telegramStatus = await sendTelegramRequestNotification(settings, {
     reqId,
-    name: payload.fullName,
+    requestSummary: payload.requestSummary,
     agency: payload.agency,
-    citizenId: payload.citizenId,
-    maskedId: payload.maskedCitizenId,
     dateText: payload.requestDateText,
     timeText: payload.requestTimeText,
     status: payload.status,
@@ -213,7 +206,7 @@ export async function updateRequestStatusByReqId(reqId: string, input: UpdateReq
   if (input.sendNotification) {
     const settings = await getSettingsMap();
     await sendTelegramStatusNotification(settings, {
-      name: data.full_name,
+      requestSummary: data.full_name,
       status: input.status,
       note,
     });
@@ -226,7 +219,7 @@ export async function getRequestTelegramContextByReqId(reqId: string) {
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
     .from("requests")
-    .select("full_name, agency, citizen_id, masked_citizen_id")
+    .select("full_name, agency")
     .eq("req_id", reqId)
     .maybeSingle();
 
@@ -239,10 +232,8 @@ export async function getRequestTelegramContextByReqId(reqId: string) {
   }
 
   return {
-    fullName: data.full_name ?? "",
+    requestSummary: data.full_name ?? "",
     agency: data.agency ?? "",
-    citizenId: data.citizen_id ?? "",
-    maskedCitizenId: data.masked_citizen_id ?? "",
   };
 }
 

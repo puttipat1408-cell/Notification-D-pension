@@ -3,9 +3,7 @@ import { z } from "zod";
 import { dashboardStatusValues } from "@/lib/statuses";
 
 export const createRequestSchema = z.object({
-  firstName: z.string().trim().min(1, "กรุณากรอกชื่อ"),
-  lastName: z.string().trim().min(1, "กรุณากรอกนามสกุล"),
-  citizenId: z.string().trim().optional().default(""),
+  requestCount: z.coerce.number().int("จำนวนต้องเป็นเลขจำนวนเต็ม").min(1, "กรุณาระบุจำนวนผู้ขออย่างน้อย 1 ราย"),
   agency: z.string().trim().min(1, "กรุณาเลือกส่วนราชการ"),
 });
 

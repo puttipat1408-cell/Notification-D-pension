@@ -1018,7 +1018,7 @@ button {
   }
 
   .data-table td:nth-child(2)::before {
-    content: "ชื่อ-นามสกุล";
+    content: "จำนวนผู้ขอ";
   }
 
   .data-table td:nth-child(3)::before {

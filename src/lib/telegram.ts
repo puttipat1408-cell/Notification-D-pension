@@ -7,7 +7,7 @@ import {
   getTelegramActionConfig,
 } from "@/lib/settings";
 import type { SettingsMap, TelegramAction, TelegramRequestNotificationPayload } from "@/lib/types";
-import { escapeTelegramHtml, isTruthySetting } from "@/lib/utils";
+import { escapeTelegramHtml } from "@/lib/utils";
 
 type TelegramApiResult = {
   ok?: boolean;
@@ -54,12 +54,11 @@ export async function sendTelegramRequestNotification(settings: SettingsMap, pay
     return { statusText: "Not Configured", message: "(ยังไม่ได้ตั้งค่า Telegram)" };
   }
 
-  const displayId = isTruthySetting(settings.SEND_FULL_ID) ? payload.citizenId : payload.maskedId;
   const keyboard = buildTelegramInlineKeyboard(getInitialTelegramActionRows(), payload.reqId, settings);
 
   const message = `🔔 <b>แจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</b>\n\n` +
-    `👤 <b>ชื่อผู้ขอ:</b> ${escapeTelegramHtml(payload.name)}\n` +
     `🏢 <b>ส่วนราชการ:</b> ${escapeTelegramHtml(payload.agency)}\n` +
+    `👥 <b>จำนวนผู้ขอ:</b> ${escapeTelegramHtml(payload.requestSummary)}\n` +
     `📅 <b>วันที่:</b> ${escapeTelegramHtml(payload.dateText)} ⏰ ${escapeTelegramHtml(payload.timeText)}\n` +
     `📌 <b>สถานะ:</b> ${escapeTelegramHtml(payload.status)}`;
 
@@ -77,14 +76,18 @@ export async function sendTelegramRequestNotification(settings: SettingsMap, pay
   return { statusText: "Error", message: "(ส่ง Telegram ไม่สำเร็จ)" };
 }
 
-export async function sendTelegramStatusNotification(settings: SettingsMap, payload: { name: string; status: string; note: string }) {
+export async function sendTelegramStatusNotification(settings: SettingsMap, payload: {
+  requestSummary: string;
+  status: string;
+  note: string;
+}) {
   const { token, chatId, isConfigured } = getTelegramConfig(settings);
   if (!isConfigured || !token || !chatId) {
     return;
   }
 
   const message = `🔄 <b>อัปเดตสถานะคำขอ</b>\n\n` +
-    `👤 <b>ผู้ขอ:</b> ${escapeTelegramHtml(payload.name)}\n` +
+    `👥 <b>จำนวนผู้ขอ:</b> ${escapeTelegramHtml(payload.requestSummary)}\n` +
     `📌 <b>สถานะใหม่:</b> <b>${escapeTelegramHtml(payload.status)}</b>\n` +
     `📝 <b>หมายเหตุ:</b> ${escapeTelegramHtml(payload.note || "-")}`;
 
@@ -97,9 +100,8 @@ export async function sendTelegramStatusNotification(settings: SettingsMap, payl
 
 export async function sendTelegramCallbackFeedback(settings: SettingsMap, payload: {
   action: TelegramAction;
-  name?: string;
+  requestSummary?: string;
   agency?: string;
-  citizenId?: string;
   reqId: string;
   callbackId: string;
   messageId?: number;
@@ -111,14 +113,14 @@ export async function sendTelegramCallbackFeedback(settings: SettingsMap, payloa
 
   const actionConfig = getTelegramActionConfig(payload.action, settings);
   const newKeyboard = buildTelegramInlineKeyboard(getNextTelegramActionRows(payload.action), payload.reqId, settings);
-  const nameLine = payload.name
-    ? `👤 <b>ชื่อผู้ขอ:</b> ${escapeTelegramHtml(payload.name)}\n`
-    : "";
   const agencyLine = payload.agency
     ? `🏢 <b>ส่วนราชการ:</b> ${escapeTelegramHtml(payload.agency)}\n`
     : "";
+  const requestSummaryLine = payload.requestSummary
+    ? `👥 <b>จำนวนผู้ขอ:</b> ${escapeTelegramHtml(payload.requestSummary)}\n`
+    : "";
   const quickAlertMsg = `${actionConfig.icon} <b>อัปเดตสถานะแล้ว</b>\n\n` +
-    nameLine +
+    requestSummaryLine +
     agencyLine +
     `📌 <b>สถานะปัจจุบัน:</b> <b>${escapeTelegramHtml(actionConfig.statusText)}</b>\n` +
     `👨‍💻 <b>ผู้ดำเนินการ:</b> ${escapeTelegramHtml(payload.actionBy)}`;

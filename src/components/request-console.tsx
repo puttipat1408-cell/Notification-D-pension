@@ -21,8 +21,7 @@ type FlashState = {
 } | null;
 
 const INITIAL_FORM = {
-  firstName: "",
-  lastName: "",
+  requestCount: "",
   agency: "",
 };
 
@@ -186,6 +185,11 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
     setFormData(INITIAL_FORM);
   }
 
+  function handleRequestCountChange(value: string) {
+    const digitsOnly = value.replace(/[^0-9]/g, "").replace(/^0+(?=\d)/, "");
+    setFormData((current) => ({ ...current, requestCount: digitsOnly }));
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -339,30 +343,20 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
               <form onSubmit={handleSubmit}>
                 <div className="field-grid">
                   <div className="field">
-                    <label htmlFor="firstName">ชื่อ</label>
+                    <label htmlFor="requestCount">จำนวนผู้ขอ</label>
                     <input
-                      id="firstName"
+                      id="requestCount"
                       className="input"
-                      value={formData.firstName}
-                      onChange={(event) => setFormData((current) => ({ ...current, firstName: event.target.value }))}
-                      placeholder="กรอกชื่อ"
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.requestCount}
+                      onChange={(event) => handleRequestCountChange(event.target.value)}
+                      placeholder="ระบุจำนวน เช่น 12"
                       autoComplete="off"
                     />
                   </div>
 
                   <div className="field">
-                    <label htmlFor="lastName">นามสกุล</label>
-                    <input
-                      id="lastName"
-                      className="input"
-                      value={formData.lastName}
-                      onChange={(event) => setFormData((current) => ({ ...current, lastName: event.target.value }))}
-                      placeholder="กรอกนามสกุล"
-                      autoComplete="off"
-                    />
-                  </div>
-
-                  <div className="field full">
                     <label htmlFor="agency">สังกัดส่วนราชการ</label>
                     <select
                       id="agency"
@@ -403,7 +397,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                     <input
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="ค้นหา ชื่อ, หน่วยงาน"
+                      placeholder="ค้นหา จำนวนผู้ขอ, หน่วยงาน"
                     />
                   </div>
 
@@ -431,7 +425,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                     <thead>
                       <tr>
                         <th>วันที่-เวลา</th>
-                        <th>ชื่อ-นามสกุล</th>
+                        <th>จำนวนผู้ขอ</th>
                         <th>ส่วนราชการ</th>
                         <th>สถานะ</th>
                         <th>จัดการ</th>
@@ -462,7 +456,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                               <div className="row-primary">{request.requestDate}</div>
                               <div className="row-secondary">{request.requestTime}</div>
                             </td>
-                            <td className="row-primary">{request.fullName}</td>
+                            <td className="row-primary">{request.requestSummary}</td>
                             <td className="row-secondary">{request.agency}</td>
                             <td>
                               <span className={clsx("status-badge", getStatusTone(request.status))}>
@@ -503,7 +497,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
           <div className="modal-backdrop" role="presentation">
             <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
               <h3 id="status-modal-title">อัปเดตสถานะคำขอ</h3>
-              <p>{modalRequest.reqId} • {modalRequest.fullName}</p>
+              <p>{modalRequest.reqId} • {modalRequest.requestSummary}</p>
 
               <div className="field-grid" style={{ marginTop: 20 }}>
                 <div className="field full">

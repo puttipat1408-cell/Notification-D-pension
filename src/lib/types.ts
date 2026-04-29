@@ -14,7 +14,7 @@ export interface RequestRecord {
   reqId: string;
   requestDate: string;
   requestTime: string;
-  fullName: string;
+  requestSummary: string;
   agency: string;
   maskedCitizenId: string;
   status: string;
@@ -24,9 +24,7 @@ export interface RequestRecord {
 }
 
 export interface CreateRequestInput {
-  firstName: string;
-  lastName: string;
-  citizenId?: string;
+  requestCount: number;
   agency: string;
 }
 
@@ -38,10 +36,8 @@ export interface UpdateRequestStatusInput {
 
 export interface TelegramRequestNotificationPayload {
   reqId: string;
-  name: string;
+  requestSummary: string;
   agency: string;
-  citizenId: string;
-  maskedId: string;
   dateText: string;
   timeText: string;
   status: string;
