@@ -1,18 +1,20 @@
 "use client";
 
 import clsx from "clsx";
+import Image from "next/image";
 import {
   startTransition,
   useDeferredValue,
   useEffect,
   useEffectEvent,
-  useState,
   useRef,
+  useState,
 } from "react";
-import Image from "next/image";
 
-import { getStatusTone, dashboardStatusValues } from "@/lib/statuses";
-import type { RequestRecord } from "@/lib/types";
+import { dashboardStatusValues, getStatusTone } from "@/lib/statuses";
+import type { CreateRequestInput, RequestRecord } from "@/lib/types";
+
+type DashboardStatus = (typeof dashboardStatusValues)[number];
 
 type FlashState = {
   type: "success" | "error";
@@ -37,7 +39,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 async function fetchRequestsFromApi(options?: {
   search?: string;
-  status?: "all" | (typeof dashboardStatusValues)[number];
+  status?: "all" | DashboardStatus;
 }) {
   const params = new URLSearchParams();
 
@@ -58,6 +60,36 @@ async function fetchRequestsFromApi(options?: {
   return parseResponse<RequestRecord[]>(response);
 }
 
+async function createRequestFromApi(input: CreateRequestInput) {
+  const response = await fetch("/api/requests", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  return parseResponse<{ message: string }>(response);
+}
+
+function parseFormData(formData: typeof INITIAL_FORM): CreateRequestInput {
+  const requestCount = Number.parseInt(formData.requestCount, 10);
+  const agency = formData.agency.trim();
+
+  if (!Number.isInteger(requestCount) || requestCount < 1) {
+    throw new Error("กรุณาระบุจำนวนผู้ขออย่างน้อย 1 ราย");
+  }
+
+  if (!agency) {
+    throw new Error("กรุณาเลือกส่วนราชการ");
+  }
+
+  return {
+    requestCount,
+    agency,
+  };
+}
+
 export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
   const [activeTab, setActiveTab] = useState<"form" | "dashboard">("form");
   const [formData, setFormData] = useState(INITIAL_FORM);
@@ -65,11 +97,11 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
   const [requests, setRequests] = useState<RequestRecord[]>([]);
   const [requestsError, setRequestsError] = useState("");
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<"all" | (typeof dashboardStatusValues)[number]>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | DashboardStatus>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [flash, setFlash] = useState<FlashState>(null);
   const [modalRequest, setModalRequest] = useState<RequestRecord | null>(null);
-  const [modalStatus, setModalStatus] = useState<(typeof dashboardStatusValues)[number]>("รออนุมัติ");
+  const [modalStatus, setModalStatus] = useState<DashboardStatus>(dashboardStatusValues[0]);
   const [modalNote, setModalNote] = useState("");
   const [modalNotify, setModalNotify] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
@@ -190,32 +222,37 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
     setFormData((current) => ({ ...current, requestCount: digitsOnly }));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmitRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    let nextRequest: CreateRequestInput;
+
+    try {
+      nextRequest = parseFormData(formData);
+    } catch (error) {
+      pushFlash({
+        type: "error",
+        title: "ส่งคำขอไม่สำเร็จ",
+        message: error instanceof Error ? error.message : "เกิดข้อผิดพลาด",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/requests", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await parseResponse<{ message: string }>(response);
-      pushFlash({
-        type: "success",
-        title: "บันทึกสำเร็จ",
-        message: result.message,
-      });
+      const result = await createRequestFromApi(nextRequest);
       resetForm();
       void loadRequests(true);
+      pushFlash({
+        type: "success",
+        title: "ส่งคำขอสำเร็จ",
+        message: result.message || "ส่งคำขอสำเร็จแล้ว",
+      });
     } catch (error) {
       pushFlash({
         type: "error",
-        title: "บันทึกไม่สำเร็จ",
+        title: "ส่งคำขอไม่สำเร็จ",
         message: error instanceof Error ? error.message : "เกิดข้อผิดพลาด",
       });
     } finally {
@@ -226,9 +263,9 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
   function openModal(request: RequestRecord) {
     setModalRequest(request);
     setModalStatus(
-      dashboardStatusValues.includes(request.status as (typeof dashboardStatusValues)[number])
-        ? (request.status as (typeof dashboardStatusValues)[number])
-        : "รออนุมัติ",
+      dashboardStatusValues.includes(request.status as DashboardStatus)
+        ? (request.status as DashboardStatus)
+        : dashboardStatusValues[0],
     );
     setModalNote(request.note === "-" ? "" : request.note);
     setModalNotify(false);
@@ -336,11 +373,14 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
               <div className="panel-header">
                 <div>
                   <div className="panel-title">บันทึกคำขอใหม่</div>
+                  <div className="panel-subtitle">
+                    กรอกข้อมูลให้ครบแล้วกดส่ง ระบบจะบันทึกคำขอและแจ้งเตือนทันที
+                  </div>
                 </div>
-                <div className="panel-chip">เริ่มต้นสถานะ: ส่งคำขอ</div>
+                <div className="panel-chip">พร้อมส่งคำขอ</div>
               </div>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmitRequest}>
                 <div className="field-grid">
                   <div className="field">
                     <label htmlFor="requestCount">จำนวนผู้ขอ</label>
@@ -405,7 +445,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                     className="select"
                     style={{ minWidth: 164 }}
                     value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value as "all" | (typeof dashboardStatusValues)[number])}
+                    onChange={(event) => setStatusFilter(event.target.value as "all" | DashboardStatus)}
                   >
                     <option value="all">ทุกสถานะ</option>
                     {dashboardStatusValues.map((status) => (
@@ -414,8 +454,6 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                       </option>
                     ))}
                   </select>
-
-                  
                 </div>
               </div>
 
@@ -486,7 +524,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                 <span>🌷</span>
                 <span>🙋‍♀️</span>
               </span>
-              <span>พรรณลิณี แผนเมือง</span>
+              <span>พรรณลินี แผนเมือง</span>
             </p>
             <p className="developer-role">นักวิชาการเงินและบัญชี กลุ่มงานวิชาการ</p>
             <p className="developer-caption">ผู้พัฒนาระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</p>
@@ -497,7 +535,9 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
           <div className="modal-backdrop" role="presentation">
             <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
               <h3 id="status-modal-title">อัปเดตสถานะคำขอ</h3>
-              <p>{modalRequest.reqId} • {modalRequest.requestSummary}</p>
+              <p>
+                {modalRequest.reqId} • {modalRequest.requestSummary}
+              </p>
 
               <div className="field-grid" style={{ marginTop: 20 }}>
                 <div className="field full">
@@ -506,7 +546,7 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
                     id="modalStatus"
                     className="select"
                     value={modalStatus}
-                    onChange={(event) => setModalStatus(event.target.value as (typeof dashboardStatusValues)[number])}
+                    onChange={(event) => setModalStatus(event.target.value as DashboardStatus)}
                   >
                     {dashboardStatusValues.map((status) => (
                       <option key={status} value={status}>

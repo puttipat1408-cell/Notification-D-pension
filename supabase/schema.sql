@@ -24,11 +24,10 @@ create table if not exists public.requests (
   note text not null default '-',
   telegram_status text not null default 'Pending',
   created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
+  updated_at timestamptz not null default timezone('utc', now())65
 );
 
-create unique index if not exists requests_unique_person_per_day
-  on public.requests (request_day, first_name, last_name, citizen_id);
+drop index if exists public.requests_unique_person_per_day;
 
 create or replace function public.set_updated_at()
 returns trigger

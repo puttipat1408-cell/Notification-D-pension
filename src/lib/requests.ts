@@ -48,7 +48,9 @@ export async function getRequests(options: GetRequestsOptions = {}): Promise<Req
 
   const { data, error } = await query;
 
-  if (error) throw new AppError(`โหลดข้อมูลล้มเหลว: ${error.message}`, 500);
+  if (error) {
+    throw new AppError(`โหลดข้อมูลล้มเหลว: ${error.message}`, 500);
+  }
 
   return (data ?? []).map((row) => ({
     id: row.id,
@@ -69,7 +71,10 @@ async function buildInsertPayload(input: CreateRequestInput) {
   const now = new Date();
   const requestCount = input.requestCount;
   const agency = input.agency.trim();
-  const citizenId = "";
+  const timestampMs = now.getTime();
+  // Preserve support for repeated submissions even if an older database
+  // still has the legacy per-day unique index in place.
+  const citizenId = `AUTO-${timestampMs}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   const requestSummary = `${requestCount} ราย`;
 
   if (!Number.isInteger(requestCount) || requestCount < 1 || !agency) {
@@ -88,7 +93,7 @@ async function buildInsertPayload(input: CreateRequestInput) {
     requestDay: formatBangkokDay(now),
     requestDateText: formatThaiDate(now),
     requestTimeText: formatBangkokTime(now),
-    timestampMs: now.getTime(),
+    timestampMs,
     status: "ส่งคำขอแล้ว",
   };
 }
@@ -97,27 +102,10 @@ export async function createRequest(input: CreateRequestInput) {
   const payload = await buildInsertPayload(input);
   const supabase = getSupabaseAdminClient();
 
-  const { data: duplicateRow, error: duplicateError } = await supabase
-    .from("requests")
-    .select("id")
-    .eq("request_day", payload.requestDay)
-    .eq("first_name", payload.storageFirstName)
-    .eq("last_name", payload.storageLastName)
-    .eq("citizen_id", payload.citizenId)
-    .maybeSingle();
-
-  if (duplicateError && duplicateError.code !== "PGRST116") {
-    throw new AppError(`ตรวจสอบข้อมูลซ้ำล้มเหลว: ${duplicateError.message}`, 500);
-  }
-
-  if (duplicateRow) {
-    throw new AppError("ตรวจพบการบันทึกข้อมูลซ้ำซ้อนสำหรับส่วนราชการและจำนวนนี้ในวันนี้");
-  }
-
   let reqId = "";
   let lastInsertError: { code?: string; message?: string } | null = null;
 
-  for (let attempt = 0; attempt < 5; attempt += 1) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
     reqId = generateRequestId(payload.now, attempt);
 
     const { error } = await supabase.from("requests").insert({
