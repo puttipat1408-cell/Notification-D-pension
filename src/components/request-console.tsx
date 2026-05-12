@@ -521,10 +521,10 @@ export function RequestConsole({ agencies }: { agencies: readonly string[] }) {
           <div className="developer-card">
             <p className="developer-name">
               <span className="developer-icons" aria-hidden="true">
-                <span>🌷</span>
-                <span>🙋‍♀️</span>
+                <span>🦋</span>
+                <span>👧</span>
               </span>
-              <span>พรรณลินี แผนเมือง</span>
+              <span>พรรณลิณี แผนเมือง</span>
             </p>
             <p className="developer-role">นักวิชาการเงินและบัญชี กลุ่มงานวิชาการ</p>
             <p className="developer-caption">ผู้พัฒนาระบบแจ้งเตือนคำขอหนังสือบำเหน็จค้ำประกัน</p>
